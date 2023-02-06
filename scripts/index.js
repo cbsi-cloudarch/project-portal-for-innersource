@@ -396,24 +396,31 @@ function generateItem (sDisplay, oRepo) {
 	return window._globals.templates[sDisplay](oContext);
 }
 
-// load repos.json file and display the list of projects from it
-window.document.addEventListener("DOMContentLoaded", function() {
-	// load data
-	let oXHR = new XMLHttpRequest();
-	oXHR.open("GET", "repos.json");
-	oXHR.onload = () => {
-		if (oXHR.status === 200) {
-			window._globals.allRepos = JSON.parse(oXHR.responseText);
-			fillLanguageFilter();
-			updateUI();
-			// show number of projects in header
-			window.document.getElementById("count").innerText = window._globals.allRepos.length;
-		} else {
-			console.log("Request failed.	Returned status of " + oXHR.status);
-		}
-	};
-	oXHR.send();
+function getAllRepos(skip = 0, limit = 100) {
+    const entities = [];
+    while (true) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "http://localhost:8888/api/v1/github/repository/inner_source?skip=0&limit=100", false);
+        xhr.send();
+        var repos = JSON.parse(xhr.responseText);
+        // const response = await fetch(`http://localhost:8888/api/v1/github/repository/inner_source?skip=${skip}&limit=${limit}`);
+        // const data = await response.json();
+        entities.push(...repos);
 
+        if (repos.length < limit) {
+            break;
+        }
+
+        skip += limit;
+    }
+
+    return entities;
+}
+
+
+
+// load repos and display the list of projects from it
+window.document.addEventListener("DOMContentLoaded", function() {
 	// init templates
 	window._globals.templates.card = Handlebars.compile(window.document.getElementById("card-template").innerHTML);
 	window._globals.templates.list = Handlebars.compile(window.document.getElementById("list-template").innerHTML);
@@ -421,6 +428,14 @@ window.document.addEventListener("DOMContentLoaded", function() {
 	window._globals.templates.language = Handlebars.compile(window.document.getElementById("language-template").innerHTML);
 	window._globals.templates.details = Handlebars.compile(window.document.getElementById("details-template").innerHTML);
 	window._globals.templates.participation = Handlebars.compile(window.document.getElementById("participation-template").innerHTML);
+
+
+	window._globals.allRepos = getAllRepos();
+	fillLanguageFilter();
+	updateUI();
+	// show number of projects in header
+	window.document.getElementById("count").innerText = window._globals.allRepos.length;
+
 
 	// init filters
 	window.document.getElementById("sort").addEventListener("change", function () {
@@ -439,13 +454,8 @@ window.document.addEventListener("DOMContentLoaded", function() {
 
 // fill language filter list based on detected languages
 function fillLanguageFilter () {
-	let aAllLanguages = [];
-	// create a unique list of languages
-	window._globals.allRepos.map(repo => {
-		if (repo.language && !aAllLanguages.includes(repo.language)) {
-			aAllLanguages.push(repo.language);
-		}
-	});
+	let aAllLanguages = [...new Set(window._globals.allRepos.filter(repo => repo.language !== null).map(repo => repo.language))];
+
 	// sort alphabetically and reverse
 	aAllLanguages = aAllLanguages.sort().reverse();
 	// insert new items backwards between "All" and "Other"
