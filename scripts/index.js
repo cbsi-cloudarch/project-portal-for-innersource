@@ -400,7 +400,7 @@ function getAllRepos(skip = 0, limit = 100) {
     const entities = [];
     while (true) {
         var xhr = new XMLHttpRequest();
-        xhr.open("GET", "https://console-dev.cbsicloud.com/neelix/api/v1/github/repository/inner_source?skip=0&limit=100", false);
+        xhr.open("GET", `https://console-dev.cbsicloud.com/neelix/api/v1/github/repository/inner_source?skip=${skip}&limit=${limit}`, false);
         xhr.send();
         var repos = JSON.parse(xhr.responseText);
         // const response = await fetch(`http://localhost:8888/api/v1/github/repository/inner_source?skip=${skip}&limit=${limit}`);
